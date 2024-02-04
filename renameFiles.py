@@ -7,23 +7,24 @@ import sys
 import logging
 import argparse
 
-from lib_dryrun import dry_run_decorator, dry_run_context, dry_run_flag
-from lib_fileinput import get_file_paths_from_input
+from lib_dryrun import *
+from lib_fileinput import *
 from lib_logging import *
 
-# setup_logging(level=logging.DEBUG)
-setup_logging(level=logging.ERROR)
+# setup_logging(level=logging.ERROR)
+setup_logging(level=logging.DEBUG)
 
 
 def dry_run_perform_rename(old_path, new_path, **kwargs):
     return f"Dry-run: '{old_path}' -> '{new_path}'"
 
 
+@log_function
 @dry_run_decorator(custom_message=dry_run_perform_rename)
-def perform_rename(old_path, new_path, dry_run=False):
+def perform_rename(old_path, new_path):
     try:
         os.rename(old_path, new_path)
-        log_info(f"Renamed '{old_path}' to '{new_path}'")
+        log_out(f"'{old_path}' ==> '{new_path}'")
     except OSError as error:
         log_error(f"Error renaming file {old_path} to {new_path}: {error}")
 
@@ -127,17 +128,26 @@ def rename_file(file_path, args, dry_run):
     base_name, ext = os.path.splitext(full_name)
 
     # Apply pattern replacement if the match pattern is specified and the filename matches
-    if args.match and args.replace and matches_pattern(full_name, args.match):
+    log_debug(f"args.match: {args.match}, args.repace: {args.replace}")
+    if args.match and (args.replace or args.replace=="") and matches_pattern(full_name, args.match):
         full_name = replace(full_name, args.match, args.replace)
         base_name, ext = os.path.splitext(full_name)  # Re-split if pattern replacement changed the extension
+    elif not args.replace:
+        log_debug("failing due to args.replace")
+    elif not args.match:
+        log_debug("failing due to args.match")
 
     # Apply case transformation to the base name only
     if args.change_case:
         base_name = apply_case_transform(base_name, args.change_case)
+    else:
+        log_debug(f"No change to case: args.change_case = {args.change_case}")
 
     # Apply vowel removal to the base name only
     if args.remove_vowels:
         base_name = remove_vowels(base_name)
+    else:
+        log_debug(f"No removal of vowels: args.remove_vowels = {args.remove_vowels}")
 
     # Construct the new file path
     new_path = os.path.join(directory, base_name + ext)
@@ -145,7 +155,7 @@ def rename_file(file_path, args, dry_run):
     # Perform the rename operation
     if new_path != file_path:
         # Call the decorated renaming function
-        perform_rename(file_path, new_path, dry_run=dry_run)
+        perform_rename(file_path, new_path)
 
         # if dry_run:
             # In the function that generates dry-run output
@@ -156,6 +166,8 @@ def rename_file(file_path, args, dry_run):
         # else:
             # os.rename(file_path, new_path)
             # log_out(f"{file_path}' -> '{new_path}'")  
+    else:
+        log_debug(f"No change to filename: {new_path} == {file_path}")
 
 
 def parse_arguments():

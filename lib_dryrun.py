@@ -30,6 +30,7 @@ def dry_run_decorator(custom_message=None):
 # Example Usages
 #####################################
 
+'''
 # Custom message function for renaming
 def eg_rename_message(old_path, new_path, **kwargs):
     return f"Dry-run: Renaming '{old_path}' to '{new_path}'"
@@ -52,7 +53,8 @@ def eg_delete_file(file_path, dry_run=False):
 @dry_run_decorator(custom_message=lambda file_path: f"Dry-run: delete '{file_path}'")
 def eg_delete_file(file_path, dry_run=False):
     # Perform delete action
-
+    pass
+'''
 
 #####################################
 # Dry-run context manager for blocks of code
